@@ -106,11 +106,24 @@ if(USE_SYSTEM_ONNXRUNTIME)
     message(FATAL_ERROR "System ONNX Runtime is only supported on Linux!")
   endif()
 else()
-  include(cmake/FetchOnnxruntime.cmake)
+  list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/onnxruntime")
+  find_package(onnxruntime CONFIG REQUIRED)
+  if(APPLE)
+    get_target_property(ONNXRUNTIME_DYLIB_PATH onnxruntime::onnxruntime IMPORTED_LOCATION_RELEASE)
+    target_sources(${CMAKE_PROJECT_NAME} PRIVATE "${ONNXRUNTIME_DYLIB_PATH}")
+    set_property(SOURCE "${ONNXRUNTIME_DYLIB_PATH}" PROPERTY MACOSX_PACKAGE_LOCATION Frameworks)
+    set_target_properties(
+      ${CMAKE_PROJECT_NAME}
+      PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@loader_path/../Frameworks"
+    )
+  endif()
 endif()
 
 add_subdirectory(src/update-checker/CurlClient)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE CurlClient OpenCV::opencv_core OpenCV::opencv_imgproc)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE CurlClient OpenCV::opencv_core OpenCV::opencv_imgproc onnxruntime::onnxruntime
+)
 
 target_sources(
   ${CMAKE_PROJECT_NAME}
