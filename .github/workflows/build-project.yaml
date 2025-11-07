@@ -161,31 +161,34 @@ jobs:
           notarizationUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
           notarizationPassword: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
 
-      # - name: Checkout vcpkg repository
-      #   uses: actions/checkout@v5
-      #   with:
-      #     repository: microsoft/vcpkg
-      #     path: ${{ env.VCPKG_ROOT }}
+      - name: Checkout vcpkg repository
+        uses: actions/checkout@v5
+        with:
+          repository: microsoft/vcpkg
+          path: ${{ env.VCPKG_ROOT }}
 
-      # - name: Bootstrap vcpkg
-      #   working-directory: ${{ env.VCPKG_ROOT }}
-      #   run: ./bootstrap-vcpkg.sh
+      - name: Bootstrap vcpkg
+        working-directory: ${{ env.VCPKG_ROOT }}
+        run: ./bootstrap-vcpkg.sh
+      
+      - name: Install mono
+        run: brew install mono
 
-      # - name: Install mono
-      #   run: brew install mono
+      - name: "Setup NuGet Credentials"
+        run: |
+          NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n1)"
+          mono "$NUGET_PATH" sources add \
+            -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            -StorePasswordInClearText \
+            -Name "GitHub" \
+            -UserName "${{ github.repository_owner }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
 
-      # - name: "Setup NuGet Credentials"
-      #   run: |
-      #     NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n1)"
-      #     mono "$NUGET_PATH" sources add \
-      #       -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-      #       -StorePasswordInClearText \
-      #       -Name "GitHub" \
-      #       -UserName "${{ github.repository_owner }}" \
-      #       -Password "${{ secrets.GITHUB_TOKEN }}"
-
-      # - name: "Install dependencies from vcpkg"
-      #   run: ".github/scripts/install-vcpkg-macos.bash"
+      - name: "Install dependencies from vcpkg"
+        run: ".github/scripts/install-vcpkg-macos.bash"
+      
+      - name: "Download ONNX Runtime"
+        run: "cmake -P cmake/DownloadOnnxruntime.cmake"
 
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
@@ -270,27 +273,30 @@ jobs:
           repository: microsoft/vcpkg
           path: ${{ env.VCPKG_ROOT }}
 
-      # - name: Bootstrap vcpkg
-      #   working-directory: ${{ env.VCPKG_ROOT }}
-      #   run: ./bootstrap-vcpkg.sh
+      - name: Bootstrap vcpkg
+        working-directory: ${{ env.VCPKG_ROOT }}
+        run: ./bootstrap-vcpkg.sh
+      
+      - name: Install mono
+        run: sudo apt-get -y install mono-devel
 
-      # - name: Install mono
-      #   run: sudo apt-get -y install mono-devel
+      - name: "Setup NuGet Credentials"
+        run: |
+          NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n1)"
+          mono "$NUGET_PATH" sources add \
+            -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            -StorePasswordInClearText \
+            -Name "GitHub" \
+            -UserName "${{ github.repository_owner }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          mono "$NUGET_PATH" setapikey "${{ secrets.GITHUB_TOKEN }}" \
+            -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
 
-      # - name: "Setup NuGet Credentials"
-      #   run: |
-      #     NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n1)"
-      #     mono "$NUGET_PATH" sources add \
-      #       -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json" \
-      #       -StorePasswordInClearText \
-      #       -Name "GitHub" \
-      #       -UserName "kaito-tokyo" \
-      #       -Password "${{ secrets.GITHUB_TOKEN }}"
-      #     mono "$NUGET_PATH" setapikey "${{ secrets.GITHUB_TOKEN }}" \
-      #       -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json"
-
-      # - name: "Install dependencies from vcpkg"
-      #   run: "$VCPKG_ROOT/vcpkg install --triplet x64-linux-obs"
+      - name: "Install dependencies from vcpkg"
+        run: "$VCPKG_ROOT/vcpkg install --triplet x64-linux-obs"
+      
+      - name: "Download ONNX Runtime"
+        run: "cmake -P cmake/DownloadOnnxruntime.cmake"
 
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
@@ -358,35 +364,38 @@ jobs:
           "pluginName=${ProductName}" >> $env:GITHUB_OUTPUT
           "pluginVersion=${ProductVersion}" >> $env:GITHUB_OUTPUT
 
-      # - name: Checkout vcpkg repository
-      #   uses: actions/checkout@v5
-      #   with:
-      #     repository: microsoft/vcpkg
-      #     path: ${{ env.VCPKG_ROOT }}
+      - name: Checkout vcpkg repository
+        uses: actions/checkout@v5
+        with:
+          repository: microsoft/vcpkg
+          path: ${{ env.VCPKG_ROOT }}
 
-      # - name: "Bootstrap vcpkg"
-      #   working-directory: "${{ env.VCPKG_ROOT }}"
-      #   shell: "pwsh"
-      #   run: |
-      #     .\bootstrap-vcpkg.bat
+      - name: "Bootstrap vcpkg"
+        working-directory: "${{ env.VCPKG_ROOT }}"
+        shell: "pwsh"
+        run: |
+          .\bootstrap-vcpkg.bat
 
-      # - name: "Setup NuGet Credentials on Windows"
-      #   shell: pwsh
-      #   run: |
-      #     $NUGET_EXE_PATH = & "${{ env.VCPKG_ROOT }}/vcpkg" fetch nuget | Select-Object -Last 1
+      - name: "Setup NuGet Credentials on Windows"
+        shell: pwsh
+        run: |
+          $NUGET_EXE_PATH = & "${{ env.VCPKG_ROOT }}/vcpkg" fetch nuget | Select-Object -Last 1
+          
+          & $NUGET_EXE_PATH sources add `
+            -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" `
+            -StorePasswordInClearText `
+            -Name "GitHub" `
+            -UserName "${{ github.repository_owner }}" `
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          & $NUGET_EXE_PATH setapikey "${{ secrets.GITHUB_TOKEN }}" `
+            -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
 
-      #     & $NUGET_EXE_PATH sources add `
-      #       -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json" `
-      #       -StorePasswordInClearText `
-      #       -Name "GitHub" `
-      #       -UserName "kaito-tokyo" `
-      #       -Password "${{ secrets.GITHUB_TOKEN }}"
-      #     & $NUGET_EXE_PATH setapikey "${{ secrets.GITHUB_TOKEN }}" `
-      #       -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json"
-
-      # - name: "Install dependencies from vcpkg"
-      #   shell: bash
-      #   run: "$VCPKG_ROOT/vcpkg install --triplet x64-windows-static-md-obs"
+      - name: "Install dependencies from vcpkg"
+        shell: bash
+        run: "$VCPKG_ROOT/vcpkg install --triplet x64-windows-static-md-obs"
+      
+      - name: "Download ONNX Runtime"
+        run: "cmake -P cmake/DownloadOnnxruntime.cmake"
 
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin

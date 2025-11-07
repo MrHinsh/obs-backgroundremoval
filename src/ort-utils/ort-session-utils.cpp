@@ -6,8 +6,7 @@
 #include <coreml_provider_factory.h>
 #endif
 
-#if defined(_WIN32) && !defined(DISABLE_ONNXRUNTIME_GPU)
-#include <dml_provider_factory.h>
+#ifdef _WIN32
 #include <wchar.h>
 #include <windows.h>
 #endif // _WIN32
@@ -98,14 +97,6 @@ int createOrtSession(filter_data *tf)
 			sessionOptions.AppendExecutionProvider_TensorRT_V2(*tensorrt_options);
 		} else if (tf->useGPU == USEGPU_CUDA) {
 			Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(sessionOptions, 0));
-		}
-#endif
-#if defined(_WIN32) && !defined(DISABLE_ONNXRUNTIME_GPU)
-		if (tf->useGPU == USEGPU_DML) {
-			auto &api = Ort::GetApi();
-			OrtDmlApi *dmlApi = nullptr;
-			Ort::ThrowOnError(api.GetExecutionProviderApi("DML", ORT_API_VERSION, (const void **)&dmlApi));
-			Ort::ThrowOnError(dmlApi->SessionOptionsAppendExecutionProvider_DML(sessionOptions, 0));
 		}
 #endif
 #if defined(__APPLE__)
